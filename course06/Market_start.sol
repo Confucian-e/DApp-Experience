@@ -48,16 +48,42 @@ contract Market is IERC721Receiver {
 
     function buy(uint256 _tokenId, uint256 _price) external {
         // 此处编写业务逻辑
+        address buyer = msg.sender;
+        Order memory targetOrder = orderOfId[_tokenId];
+        uint price = targetOrder.price;
+        address seller = targetOrder.seller;
+        require(_price >= price, "price not enough");
+        // ERC20打钱
+        erc20.transferFrom(buyer, seller, _price);
+
+        // ERC721转移给买家
+        erc721.safeTransferFrom(address(this), buyer, _tokenId);
+
+        // 下架 NFT
+        removeListing(_tokenId);
+
         emit Deal(buyer, seller, _tokenId, price);
     }
 
     function cancelOrder(uint256 _tokenId) external {
         // 此处编写业务逻辑
+        Order memory targetOrder = orderOfId[_tokenId];
+        address seller = targetOrder.seller;
+        require(msg.sender == seller, "Only seller can cancel order");
+        removeListing(_tokenId);
+
         emit CancelOrder(seller, _tokenId);
     }
 
     function changePrice(uint256 _tokenId, uint256 _price) external {
         // 此处编写业务逻辑
+        Order memory targetOrder = orderOfId[_tokenId];
+        address seller = targetOrder.seller;
+        require(seller == msg.sender, "only seller can change price");
+
+        uint previousPrice = targetOrder.price;
+        targetOrder.price = _price;
+
         emit ChangePrice(seller, _tokenId, previousPrice, _price);
     }
 
@@ -68,6 +94,8 @@ contract Market is IERC721Receiver {
         bytes calldata _data
     ) public override returns (bytes4) {
         // 此处编写业务逻辑
+        uint _price = toUint256(_data, 0);
+        placeOrder(_seller, _tokenId, _price);
 
         return MAGIC_ON_ERC721_RECEIVED;
     }
@@ -86,11 +114,25 @@ contract Market is IERC721Receiver {
         uint256 _price
     ) internal {
         // 此处编写业务逻辑
+        Order memory newOrder = {_seller, _tokenId, _price};
+        idToOrderIndex[_tokenId] = getOrderLength();
+
+        orders.push(newOrder);
+        orderOfId[_tokenId] = newOrder;
+
         emit NewOrder(_seller, _tokenId, _price);
     }
 
     function removeListing(uint256 _tokenId) internal {
         // 此处编写业务逻辑
+        Order memory targetOrder = orderOfId[_tokenId];
+
+        uint index = idToOrderIndex[_tokenId];
+        Order memory lastOrder = orders[getOrderLength() - 1];
+        orders[index] = lastOrder;
+        orders.pop();
+
+        orderOfId[_tokenId].seller = address(0);
     }
 
     // https://stackoverflow.com/questions/63252057/how-to-use-bytestouint-function-in-solidity-the-one-with-assembly
