@@ -71,13 +71,14 @@ contract Market is IERC721Receiver {
         address seller = targetOrder.seller;
         require(msg.sender == seller, "Only seller can cancel order");
         removeListing(_tokenId);
+        erc721.safeTransferFrom(address(this), msg.sender, _tokenId);
 
         emit CancelOrder(seller, _tokenId);
     }
 
     function changePrice(uint256 _tokenId, uint256 _price) external {
         // 此处编写业务逻辑
-        Order memory targetOrder = orderOfId[_tokenId];
+        Order storage targetOrder = orderOfId[_tokenId];
         address seller = targetOrder.seller;
         require(seller == msg.sender, "only seller can change price");
 
@@ -114,7 +115,7 @@ contract Market is IERC721Receiver {
         uint256 _price
     ) internal {
         // 此处编写业务逻辑
-        Order memory newOrder = {_seller, _tokenId, _price};
+        Order memory newOrder = Order( _seller, _tokenId, _price );
         idToOrderIndex[_tokenId] = getOrderLength();
 
         orders.push(newOrder);
@@ -125,11 +126,10 @@ contract Market is IERC721Receiver {
 
     function removeListing(uint256 _tokenId) internal {
         // 此处编写业务逻辑
-        Order memory targetOrder = orderOfId[_tokenId];
-
         uint index = idToOrderIndex[_tokenId];
         Order memory lastOrder = orders[getOrderLength() - 1];
         orders[index] = lastOrder;
+        idToOrderIndex[lastOrder.tokenId] = index;
         orders.pop();
 
         orderOfId[_tokenId].seller = address(0);
