@@ -64,9 +64,9 @@ contract DepositContract {
 
     // 领取利息
     function claimReward(address payable _toAddress) public returns (bool) {
-        uint pendingReward = getPendingReward(msg.sender);                          //通过pendingReward函数获得用户待领取的利息
-        WETH(_weth).withdrawTo(_toAddress,pendingReward);                           //调用withdraw提取
-        claimedReward[msg.sender] = claimedReward[msg.sender].add(pendingReward);   //领取利息后对claimedReward累加
+        uint pendingReward = getPendingReward(msg.sender);                          // 通过pendingReward函数获得用户待领取的利息
+        WETH(_weth).withdrawTo(_toAddress,pendingReward);                           // 调用withdraw提取
+        claimedReward[msg.sender] = claimedReward[msg.sender].add(pendingReward);   // 领取利息后对claimedReward累加
         emit Claim(msg.sender, _toAddress, pendingReward);
         return true;
     }
@@ -82,8 +82,8 @@ contract DepositContract {
         uint time = block.number > endBlock ? endBlock : block.number;
         calculatedReward[msg.sender]=calculatedReward[msg.sender].add(time.sub(checkPoint[msg.sender].div(depositAmount[msg.sender])).mul(depositAmount[msg.sender]).div(rewardBase));
 
-        WETH(_weth).withdrawTo(msg.sender,_amount);                             //调用withdrawto进行充值
-        depositAmount[msg.sender] = depositAmount[msg.sender].sub(_amount);     //提取后本金减少
+        WETH(_weth).withdrawTo(msg.sender,_amount);                             // 调用withdrawto进行提取
+        depositAmount[msg.sender] = depositAmount[msg.sender].sub(_amount);     // 提取后本金减少
         checkPoint[msg.sender] = depositAmount[msg.sender].mul(block.number);        
         emit Withdraw(msg.sender, _amount);
         return true;
